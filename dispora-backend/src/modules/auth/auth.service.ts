@@ -1,55 +1,43 @@
-import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) { }
+  ) {}
 
-  async requestOtp(phoneNumber: string): Promise<{ message: string; otp?: string }> {
-    // Generate 6 digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store in Redis with 5 minutes TTL (300000 ms)
-    await this.cacheManager.set(`otp:${phoneNumber}`, otp, 300000);
-
-    // In a real scenario, we send this OTP via WhatsApp/SMS
-    return { message: 'OTP sent successfully', otp }; // Return OTP for testing purposes
-  }
-
-  async verifyOtp(phoneNumber: string, otp: string): Promise<any> {
-    const storedOtp = await this.cacheManager.get<string>(`otp:${phoneNumber}`);
-    if (!storedOtp || storedOtp !== otp) {
-      throw new UnauthorizedException('Invalid or expired OTP');
+  async register(registerDto: RegisterDto) {
+    const existingUser = await this.usersService.findByEmail(registerDto.email);
+    if (existingUser) {
+      throw new UnauthorizedException('Email already exists');
     }
 
-    // OTP valid, remove from cache
-    await this.cacheManager.del(`otp:${phoneNumber}`);
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(registerDto.password, salt);
 
-    // Check if user exists
-    let user = await this.usersService.findByPhone(phoneNumber);
-    if (!user) {
-      // Auto register for citizens (Masyarakat) could be implemented here
-      throw new UnauthorizedException('User not found');
-    }
+    const user = await this.usersService.createUser({
+      fullName: registerDto.fullName,
+      email: registerDto.email,
+      phoneNumber: registerDto.phoneNumber,
+      password: hashedPassword,
+    });
 
     return this.generateTokens(user);
   }
 
-  async loginAdmin(email: string, pass: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
+  async login(loginDto: LoginDto): Promise<any> {
+    const user = await this.usersService.findByEmail(loginDto.email);
     if (!user || !user.password) {
       throw new UnauthorizedException('Invalid credentials');
     }
-
-    const isMatch = await bcrypt.compare(pass, user.password);
+    
+    const isMatch = await bcrypt.compare(loginDto.password, user.password);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }

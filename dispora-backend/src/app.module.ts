@@ -8,6 +8,8 @@ import { redisConfig } from './config/redis.config';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { NewsModule } from './modules/news/news.module';
+import { AgendasModule } from './modules/agendas/agendas.module';
+import { YouthServicesModule } from './modules/youth-services/youth-services.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { NewsModule } from './modules/news/news.module';
     UsersModule,
     AuthModule,
     NewsModule,
+    AgendasModule,
+    YouthServicesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

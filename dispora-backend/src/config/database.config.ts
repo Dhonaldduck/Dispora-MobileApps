@@ -11,6 +11,6 @@ export const databaseConfig: TypeOrmModuleOptions = {
   database: process.env.DB_NAME || 'dispora_db',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
-  synchronize: false, // Wajib false untuk production, kita gunakan migrasi
+  synchronize: process.env.NODE_ENV !== 'production', // true during development to auto-create tables
   logging: true,
 };

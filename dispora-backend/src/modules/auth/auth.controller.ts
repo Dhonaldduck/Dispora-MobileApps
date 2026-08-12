@@ -1,29 +1,21 @@
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // Apply Rate Limiting (5 requests per 60 seconds)
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @Post('otp/request')
-  @HttpCode(HttpStatus.OK)
-  async requestOtp(@Body('phoneNumber') phoneNumber: string) {
-    return this.authService.requestOtp(phoneNumber);
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
   }
 
-  @Post('otp/verify')
+  @Post('login')
   @HttpCode(HttpStatus.OK)
-  async verifyOtp(@Body() body: { phoneNumber: string; otp: string }) {
-    return this.authService.verifyOtp(body.phoneNumber, body.otp);
-  }
-
-  @Post('admin/login')
-  @HttpCode(HttpStatus.OK)
-  async adminLogin(@Body() body: { email: string; password: string }) {
-    return this.authService.loginAdmin(body.email, body.password);
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 }

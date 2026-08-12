@@ -1,0 +1,5 @@
+name: Globals
+values:
+  - key: adminuser
+    enabled: true
+    secret: true
