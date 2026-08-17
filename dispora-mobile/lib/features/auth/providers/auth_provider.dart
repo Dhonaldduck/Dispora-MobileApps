@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/user.dart';
 import '../services/auth_service.dart';
 
 enum AuthStatus {
@@ -14,11 +16,13 @@ class AuthState {
   final AuthStatus status;
   final String? errorMessage;
   final String? token;
+  final User? user;
 
   AuthState({
     required this.status,
     this.errorMessage,
     this.token,
+    this.user,
   });
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
@@ -29,10 +33,28 @@ class AuthState {
     String? errorMessage,
     String? token,
   }) {
+    User? parsedUser = this.user;
+    if (token != null && token != this.token) {
+      try {
+        final parts = token.split('.');
+        if (parts.length == 3) {
+          final payload = json.decode(
+            utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+          );
+          parsedUser = User.fromJwt(payload);
+        }
+      } catch (e) {
+        // Parse error, ignore and leave parsedUser as null or previous
+      }
+    } else if (token == null) {
+      parsedUser = null;
+    }
+
     return AuthState(
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
       token: token ?? this.token,
+      user: parsedUser,
     );
   }
 }
@@ -49,12 +71,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _checkAutoLogin() async {
     try {
-      final token = await _storage.read(key: _tokenKey);
-      if (token != null && token.isNotEmpty) {
-        state = state.copyWith(status: AuthStatus.authenticated, token: token);
-      } else {
-        state = state.copyWith(status: AuthStatus.unauthenticated);
-      }
+      // Hapus token untuk memaksa kembali ke halaman login (mode development)
+      await _storage.delete(key: _tokenKey);
+      state = state.copyWith(status: AuthStatus.unauthenticated);
     } catch (e) {
       state = state.copyWith(status: AuthStatus.unauthenticated);
     }

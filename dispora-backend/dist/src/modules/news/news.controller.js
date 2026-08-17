@@ -103,7 +103,7 @@ __decorate([
     (0, common_1.Post)('upload'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
         limits: {
-            fileSize: 2 * 1024 * 1024,
+            fileSize: 10 * 1024 * 1024,
         },
         fileFilter: (req, file, callback) => {
             const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];

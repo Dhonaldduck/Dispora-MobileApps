@@ -19,12 +19,18 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const news_module_1 = require("./modules/news/news.module");
 const agendas_module_1 = require("./modules/agendas/agendas.module");
 const youth_services_module_1 = require("./modules/youth-services/youth-services.module");
+const serve_static_1 = require("@nestjs/serve-static");
+const path_1 = require("path");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            serve_static_1.ServeStaticModule.forRoot({
+                rootPath: (0, path_1.join)(process.cwd(), 'uploads'),
+                serveRoot: '/uploads',
+            }),
             typeorm_1.TypeOrmModule.forRoot(database_config_1.databaseConfig),
             cache_manager_1.CacheModule.register(redis_config_1.redisConfig),
             users_module_1.UsersModule,

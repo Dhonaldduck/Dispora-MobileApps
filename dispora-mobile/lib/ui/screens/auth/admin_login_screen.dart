@@ -46,7 +46,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     final isLoading = authState.status == AuthStatus.loading;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Login Admin'),
         backgroundColor: Colors.transparent,

@@ -14,6 +14,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgendasController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
+const multer_1 = require("multer");
+const path_1 = require("path");
 const agendas_service_1 = require("./agendas.service");
 const create_agenda_dto_1 = require("./dto/create-agenda.dto");
 const update_agenda_dto_1 = require("./dto/update-agenda.dto");
@@ -39,6 +42,15 @@ let AgendasController = class AgendasController {
     }
     remove(id) {
         return this.agendasService.remove(id);
+    }
+    uploadFile(file) {
+        if (!file) {
+            throw new common_1.BadRequestException('File is required');
+        }
+        return {
+            message: 'File uploaded successfully',
+            filePath: `/uploads/agendas/${file.filename}`,
+        };
     }
 };
 exports.AgendasController = AgendasController;
@@ -84,6 +96,35 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AgendasController.prototype, "remove", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('Admin Konten', 'Super Admin'),
+    (0, common_1.Post)('upload'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        limits: {
+            fileSize: 10 * 1024 * 1024,
+        },
+        fileFilter: (req, file, callback) => {
+            const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            if (!allowedMimeTypes.includes(file.mimetype)) {
+                return callback(new common_1.BadRequestException('Only JPG, JPEG, PNG, and WEBP files are allowed!'), false);
+            }
+            callback(null, true);
+        },
+        storage: (0, multer_1.diskStorage)({
+            destination: './uploads/agendas',
+            filename: (req, file, callback) => {
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+                const ext = (0, path_1.extname)(file.originalname);
+                callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+            },
+        }),
+    })),
+    __param(0, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AgendasController.prototype, "uploadFile", null);
 exports.AgendasController = AgendasController = __decorate([
     (0, common_1.Controller)('agendas'),
     __metadata("design:paramtypes", [agendas_service_1.AgendasService])

@@ -3,7 +3,7 @@ import api from '../api';
 import { Plus, Edit2, Trash2, Search, X, Loader2, Image as ImageIcon } from 'lucide-react';
 
 interface News {
-  id: number;
+  id: string;
   title: string;
   content: string;
   thumbnailUrl?: string;
@@ -14,8 +14,9 @@ export const NewsPage: React.FC = () => {
   const [news, setNews] = useState<News[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Form State
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -30,7 +31,7 @@ export const NewsPage: React.FC = () => {
       console.error('Failed to fetch news', error);
       // Fallback
       setNews([
-        { id: 1, title: 'Pembukaan Pendaftaran Pemuda Pelopor 2024', content: 'Dispora Semarang membuka pendaftaran...', thumbnailUrl: '', createdAt: '2024-08-10' },
+        { id: '1', title: 'Pembukaan Pendaftaran Pemuda Pelopor 2024', content: 'Dispora Semarang membuka pendaftaran...', thumbnailUrl: '', createdAt: '2024-08-10' },
       ]);
     } finally {
       setIsLoading(false);
@@ -40,6 +41,38 @@ export const NewsPage: React.FC = () => {
   useEffect(() => {
     fetchNews();
   }, []);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle('');
+    setContent('');
+    setFile(null);
+  };
+
+  const handleOpenCreate = () => {
+    resetForm();
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (item: News) => {
+    setEditingId(item.id);
+    setTitle(item.title);
+    setContent(item.content);
+    setFile(null);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus berita ini?')) {
+      try {
+        await api.delete(`/news/${id}`);
+        fetchNews();
+      } catch (error) {
+        console.error('Failed to delete news', error);
+        alert('Gagal menghapus berita');
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,28 +85,33 @@ export const NewsPage: React.FC = () => {
         const formData = new FormData();
         formData.append('file', file);
         // Ensure endpoint exists on backend
-        const uploadRes = await api.post('/news/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const uploadRes = await api.post('/news/upload', formData);
         thumbnailUrl = uploadRes.data.filePath || uploadRes.data.url || uploadRes.data.data?.url || '';
       }
 
       // Submit news data
-      await api.post('/news', { 
-        title, 
+      const payload: any = {
+        title,
         content,
-        thumbnailUrl,
-        isPublished: true
-      });
-      
+        isPublished: true,
+      };
+
+      if (thumbnailUrl) {
+        payload.thumbnailUrl = thumbnailUrl;
+      }
+
+      if (editingId) {
+        await api.patch(`/news/${editingId}`, payload);
+      } else {
+        await api.post('/news', payload);
+      }
+
       setIsModalOpen(false);
-      setTitle('');
-      setContent('');
-      setFile(null);
+      resetForm();
       fetchNews();
     } catch (error) {
-      console.error('Failed to create news', error);
-      alert('Gagal menambahkan berita');
+      console.error('Failed to save news', error);
+      alert('Gagal menyimpan berita');
     } finally {
       setIsSubmitting(false);
     }
@@ -87,7 +125,7 @@ export const NewsPage: React.FC = () => {
           <p className="text-sm text-slate-500 mt-1">Kelola publikasi berita dan pengumuman terbaru.</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenCreate}
           className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
         >
           <Plus size={18} />
@@ -108,7 +146,7 @@ export const NewsPage: React.FC = () => {
             />
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
@@ -137,7 +175,9 @@ export const NewsPage: React.FC = () => {
               ) : (
                 news.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">{item.id}</td>
+                    <td className="px-6 py-4">
+                      <span className="truncate block w-16" title={item.id}>{item.id.substring(0, 8)}...</span>
+                    </td>
                     <td className="px-6 py-4">
                       {item.thumbnailUrl ? (
                         <img src={item.thumbnailUrl} alt={item.title} className="w-12 h-12 object-cover rounded-md border border-slate-200" />
@@ -151,10 +191,16 @@ export const NewsPage: React.FC = () => {
                     <td className="px-6 py-4">{item.createdAt ? new Date(item.createdAt).toLocaleDateString('id-ID') : '-'}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors">
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                        >
                           <Edit2 size={18} />
                         </button>
-                        <button className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        >
                           <Trash2 size={18} />
                         </button>
                       </div>
@@ -172,15 +218,17 @@ export const NewsPage: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-5 border-b border-slate-200">
-              <h2 className="text-xl font-bold text-slate-900">Tambah Berita Baru</h2>
-              <button 
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingId ? 'Edit Berita' : 'Tambah Berita Baru'}
+              </h2>
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-5 flex-1 overflow-y-auto space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="title">
@@ -196,7 +244,7 @@ export const NewsPage: React.FC = () => {
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="thumbnail">
                   Gambar/Thumbnail
@@ -209,7 +257,7 @@ export const NewsPage: React.FC = () => {
                   className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition-colors"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="content">
                   Konten Berita
@@ -225,7 +273,7 @@ export const NewsPage: React.FC = () => {
                 />
               </div>
             </form>
-            
+
             <div className="p-5 border-t border-slate-200 bg-slate-50 rounded-b-xl flex justify-end gap-3">
               <button
                 type="button"
@@ -245,7 +293,7 @@ export const NewsPage: React.FC = () => {
                     Menyimpan...
                   </>
                 ) : (
-                  'Simpan Berita'
+                  editingId ? 'Update Berita' : 'Simpan Berita'
                 )}
               </button>
             </div>

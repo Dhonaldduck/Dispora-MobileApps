@@ -9,4 +9,8 @@ export declare class AgendasController {
     create(createAgendaDto: CreateAgendaDto, req: any): Promise<import("./entities/agenda.entity").Agenda>;
     update(id: string, updateAgendaDto: UpdateAgendaDto): Promise<import("./entities/agenda.entity").Agenda>;
     remove(id: string): Promise<void>;
+    uploadFile(file: Express.Multer.File): {
+        message: string;
+        filePath: string;
+    };
 }

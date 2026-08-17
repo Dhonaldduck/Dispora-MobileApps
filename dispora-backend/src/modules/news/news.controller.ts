@@ -51,7 +51,7 @@ export class NewsController {
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: 2 * 1024 * 1024, // 2MB
+        fileSize: 10 * 1024 * 1024, // 10MB
       },
       fileFilter: (req, file, callback) => {
         const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];

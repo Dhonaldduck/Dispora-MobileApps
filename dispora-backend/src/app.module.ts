@@ -10,9 +10,15 @@ import { AuthModule } from './modules/auth/auth.module';
 import { NewsModule } from './modules/news/news.module';
 import { AgendasModule } from './modules/agendas/agendas.module';
 import { YouthServicesModule } from './modules/youth-services/youth-services.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
+    }),
     TypeOrmModule.forRoot(databaseConfig),
     CacheModule.register(redisConfig),
     UsersModule,
